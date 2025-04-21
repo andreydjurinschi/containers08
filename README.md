@@ -216,72 +216,81 @@ $tests = new TestFramework();
 
 function testDatabaseConnection() {
     global $config;
-    return new Database($config['db_path']);
+    $db = new Database($config['db_path']);
+    return $db instanceof Database;
 }
+
 function testDbExecute() {
     global $config;
     $db = new Database($config['db_path']);
-    $sql = "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)";
+    $sql = "CREATE TABLE IF NOT EXISTS pages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT
+    )";
     return $db->Execute($sql) !== false;
 }
 
 function testDbCount() {
     global $config;
     $db = new Database($config['db_path']);
-    $before = $db->Count("test");
-    $db->Create("test", ['name' => 'test count']);
-    $after = $db->Count("test");
+    $before = $db->Count("pages");
+    $db->Create("pages", ['title' => 'count test', 'content' => '...']);
+    $after = $db->Count("pages");
     return $after === $before + 1;
 }
 
 function testDbCreate() {
     global $config;
     $db = new Database($config['db_path']);
-    $id = $db->Create("pages", ['title' => 'test create']);
+    $id = $db->Create("pages", ['title' => 'create test', 'content' => '...']);
     return is_numeric($id);
 }
 
 function testDbRead() {
     global $config;
     $db = new Database($config['db_path']);
-    $id = $db->Create("pages", ['title' => 'test read']);
-    $page = $db->Read("pages", $id);
-    return $page['title'] === 'test read';
+    $id = $db->Create("pages", ['title' => 'read test', 'content' => 'read']);
+    $row = $db->Read("pages", $id);
+    return $row['title'] === 'read test';
 }
 
 function testDbUpdate() {
     global $config;
     $db = new Database($config['db_path']);
-    $id = $db->Create("pages", ['title' => 'test update']);
-    $db->Update("pages", ['title' => 'updated title'], $id);
-    $page = $db->Read("pages", $id);
-    return $page['title'] === 'updated title';
+    $id = $db->Create("pages", ['title' => 'old title', 'content' => '...']);
+    $db->Update("pages", ['title' => 'new title', 'content' => '...'], $id);
+    $row = $db->Read("pages", $id);
+    return $row['title'] === 'new title';
 }
 
 function testDbDelete() {
     global $config;
     $db = new Database($config['db_path']);
-    $id = $db->Create("pages", ['title' => 'test delete']);
+    $id = $db->Create("pages", ['title' => 'to delete', 'content' => '...']);
     $db->Delete("pages", $id);
-    $page = $db->Read("pages", $id);
-    return $page === false;
+    $row = $db->Read("pages", $id);
+    return $row === false || $row === null;
 }
 
 function testDbFetchAll() {
     global $config;
     $db = new Database($config['db_path']);
-    $db->Create("test page", ['name' => 'page fetch all']);
+    $db->Create("pages", ['title' => 'fetch test', 'content' => '...']);
     $rows = $db->FetchAll("SELECT * FROM pages");
     return is_array($rows) && count($rows) > 0;
 }
 
 function testRenderPage() {
-    $temp = new Page('layout', __DIR__ . "/../site/templates");
-    $temp->render("index.tpl", ['title'=>"TEST_PAGE", 'message' => 'TEST PAGE FOR TESTING']);
+    $page = new Page('layout', __DIR__ . '/../site/templates');
+    ob_start();
+    $page->Render('index.tpl', ['title' => 'TEST_PAGE', 'message' => 'TEST PAGE FOR TESTING']);
+    ob_end_clean();
+    return true;
 }
 
 $tests->add('Database Connection', 'testDatabaseConnection');
-$tests->add('Database Execute', 'testDatabaseExecute');
+$tests->add('Database Execute', 'testDbExecute');
 $tests->add('Database Count', 'testDbCount');
 $tests->add('Database Create', 'testDbCreate');
 $tests->add('Database Read', 'testDbRead');
@@ -289,7 +298,93 @@ $tests->add('Database Update', 'testDbUpdate');
 $tests->add('Database Delete', 'testDbDelete');
 $tests->add('Database Fetch All', 'testDbFetchAll');
 $tests->add('Render Page', 'testRenderPage');
-$tests->run();
 
+$tests->run();
 echo $tests->getResult();
+```
+7. Создаем `Dockerfile`
+
+```dockerfile
+FROM php:7.4-fpm as base
+RUN apt-get update && \
+    apt-get install -y sqlite3 libsqlite3-dev && \
+    docker-php-ext-install pdo_sqlite
+VOLUME ["/var/www/db"]
+COPY sql/schema.sql /var/www/db/schema.sql
+RUN echo "prepare database" && \
+    cat /var/www/db/schema.sql | sqlite3 /var/www/db/db.sqlite && \
+    chmod 777 /var/www/db/db.sqlite && \
+    rm -rf /var/www/db/schema.sql && \
+    echo "database is ready"
+COPY site /var/www/html
+```
+8. .github/workflows/main.yml
+
+```yaml
+name: CI
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build the Docker image
+        run: docker build -t containers08 .
+      - name: Create `container`
+        run: docker create --name container --volume database:/var/www/db containers08
+      - name: Copy tests and site to the container
+        run: |
+          docker cp ./tests container:/var/www/html
+          docker cp ./site container:/var/www/html
+      - name: Up the container
+        run: docker start container
+      - name: Run tests
+        run: docker exec container php /var/www/html/tests/tests.php
+      - name: Stop the container
+        run: docker stop container
+      - name: Remove the container
+        run: docker rm container
+```
+
+Данный файл запускает контейнер, копирует в него файлы с тестами и запускает их. После завершения работы контейнер останавливается и удаляется.
+
+![](https://i.imgur.com/hSzw1GL.png)
+
+> Что такое непрерывная интеграция?
+
+Непрерывная интеграция - это практика разработки программного обеспечения, при которой разработчики регулярно интегрируют свои изменения в общий код. Каждый раз, когда разработчик вносит изменения в код, они автоматически тестируются и собираются с помощью инструментов CI/CD. Это позволяет быстро выявлять и исправлять ошибки, а также поддерживать высокое качество кода
+
+> Для чего нужны юнит-тесты? Как часто их нужно запускать?
+
+Юнит-тесты - это автоматизированные тесты, которые проверяют отдельные части кода (юниты) на корректность работы. Они помогают выявлять ошибки на ранних стадиях разработки и обеспечивают уверенность в том, что изменения в коде не нарушают его функциональность. Юнит-тесты следует запускать как можно чаще, особенно перед каждым коммитом или при внесении изменений в код
+
+> Что нужно изменить в файле .github/workflows/main.yml для того, чтобы тесты запускались при каждом создании запроса на слияние (Pull Request)?
+
+```yaml
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+```
+
+> Что нужно добавить в файл .github/workflows/main.yml для того, чтобы удалять созданные образы после выполнения тестов?
+
+```yml
+      - name: Remove the container
+        run: docker rm container  
+      - name: Remove the image
+        run: docker rmi containers08
+```
+Если образ сто процентов существует, то его можно удалить, но если он не существует, то будет ошибка. `|| true`,  игнорирует ошибку и продолжает выполнение скрипта (даже елис образа нет).
+```yml
+      - name: Remove the image
+        run: docker rmi containers08 || true
 ```
