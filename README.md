@@ -292,5 +292,4 @@ $tests->add('Render Page', 'testRenderPage');
 $tests->run();
 
 echo $tests->getResult();
-
 ```
