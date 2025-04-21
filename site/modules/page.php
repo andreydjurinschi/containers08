@@ -10,7 +10,7 @@ namespace site\modules\page;
             $this->viewDirectory = $viewDirectory;
         }
 
-        public function Render($templateName, $data = []) {
+        public function render($templateName, $data = []) {
             extract($data);
             ob_start();
             include $this->viewDirectory . '/' . $templateName . '.php';

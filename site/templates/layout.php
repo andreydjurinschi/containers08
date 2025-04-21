@@ -11,10 +11,17 @@
 </head>
 <body>
 
-<h1 style="color: green">ITS LAYOUT WORK</h1>
-<div class="container">
-    <?php /** @var string $content */?>
-    <?= $content ?>
-</div>
+<header><h1 style="color: green">ITS LAYOUT WORK</h1></header>
+
+<main>
+    <div class="container">
+        <?php /** @var string $content */?>
+        <?= $content ?>
+    </div>
+</main>
+<footer>
+        <p>CONTAINERS08 &copy; 2025</p>
+        <p>asd</p>
+</footer>
 </body>
 </html>
