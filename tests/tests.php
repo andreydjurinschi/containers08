@@ -24,8 +24,8 @@ function testDbCount() {
     global $config;
     $db = new Database($config['db_path']);
     $before = $db->Count("test");
-    $db->Create("test", ['name' => 'test count']);
-    $after = $db->Count("test");
+    $db->Create("pages", ['name' => 'pages count']);
+    $after = $db->Count("pages");
     return $after === $before + 1;
 }
 
@@ -65,7 +65,7 @@ function testDbDelete() {
 function testDbFetchAll() {
     global $config;
     $db = new Database($config['db_path']);
-    $db->Create("test page", ['name' => 'page fetch all']);
+    $db->Create("page", ['name' => 'page fetch all']);
     $rows = $db->FetchAll("SELECT * FROM pages");
     return is_array($rows) && count($rows) > 0;
 }
