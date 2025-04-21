@@ -23,7 +23,7 @@ function testDbExecute() {
 function testDbCount() {
     global $config;
     $db = new Database($config['db_path']);
-    $before = $db->Count("test");
+    $before = $db->Count("pages");
     $db->Create("pages", ['name' => 'pages count']);
     $after = $db->Count("pages");
     return $after === $before + 1;
@@ -41,7 +41,7 @@ function testDbRead() {
     $db = new Database($config['db_path']);
     $id = $db->Create("pages", ['name' => 'test read']);
     $page = $db->Read("pages", $id);
-    return $page['title'] === 'test read';
+    return $page['name'] === 'test read';
 }
 
 function testDbUpdate() {
@@ -50,7 +50,7 @@ function testDbUpdate() {
     $id = $db->Create("pages", ['title' => 'test update']);
     $db->Update("pages", ['name' => 'updated title'], $id);
     $page = $db->Read("pages", $id);
-    return $page['title'] === 'updated title';
+    return $page['name'] === 'updated title';
 }
 
 function testDbDelete() {
@@ -65,7 +65,7 @@ function testDbDelete() {
 function testDbFetchAll() {
     global $config;
     $db = new Database($config['db_path']);
-    $db->Create("page", ['name' => 'page fetch all']);
+    $db->Create("pages", ['name' => 'page fetch all']);
     $rows = $db->FetchAll("SELECT * FROM pages");
     return is_array($rows) && count($rows) > 0;
 }
