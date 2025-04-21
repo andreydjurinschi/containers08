@@ -16,7 +16,7 @@ function testDatabaseConnection() {
 function testDbExecute() {
     global $config;
     $db = new Database($config['db_path']);
-    $sql = "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)";
+    $sql = "CREATE TABLE IF NOT EXISTS pages (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)";
     return $db->Execute($sql) !== false;
 }
 
@@ -32,14 +32,14 @@ function testDbCount() {
 function testDbCreate() {
     global $config;
     $db = new Database($config['db_path']);
-    $id = $db->Create("pages", ['title' => 'test create']);
+    $id = $db->Create("pages", ['name' => 'test create']);
     return is_numeric($id);
 }
 
 function testDbRead() {
     global $config;
     $db = new Database($config['db_path']);
-    $id = $db->Create("pages", ['title' => 'test read']);
+    $id = $db->Create("pages", ['name' => 'test read']);
     $page = $db->Read("pages", $id);
     return $page['title'] === 'test read';
 }
@@ -48,7 +48,7 @@ function testDbUpdate() {
     global $config;
     $db = new Database($config['db_path']);
     $id = $db->Create("pages", ['title' => 'test update']);
-    $db->Update("pages", ['title' => 'updated title'], $id);
+    $db->Update("pages", ['name' => 'updated title'], $id);
     $page = $db->Read("pages", $id);
     return $page['title'] === 'updated title';
 }
@@ -56,7 +56,7 @@ function testDbUpdate() {
 function testDbDelete() {
     global $config;
     $db = new Database($config['db_path']);
-    $id = $db->Create("pages", ['title' => 'test delete']);
+    $id = $db->Create("pages", ['name' => 'test delete']);
     $db->Delete("pages", $id);
     $page = $db->Read("pages", $id);
     return $page === false;
