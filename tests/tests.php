@@ -76,7 +76,7 @@ function testRenderPage() {
 }
 
 $tests->add('Database Connection', 'testDatabaseConnection');
-$tests->add('Database Execute', 'testDatabaseExecute');
+$tests->add('Database Execute', 'testDbExecute');
 $tests->add('Database Count', 'testDbCount');
 $tests->add('Database Create', 'testDbCreate');
 $tests->add('Database Read', 'testDbRead');
